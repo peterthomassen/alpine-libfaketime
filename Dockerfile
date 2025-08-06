@@ -2,7 +2,7 @@ FROM alpine:3.18
 RUN apk add build-base git
 RUN git clone https://github.com/wolfcw/libfaketime /usr/local/src/libfaketime
 WORKDIR /usr/local/src/libfaketime
-RUN make && make install
+RUN git checkout ba9ed5b2898f234cfcefbe5c694b7d89dcec4334 && make && make install
 
 # Library is in
 # - /usr/local/lib/faketime/libfaketimeMT.so.1
