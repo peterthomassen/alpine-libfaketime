@@ -1,4 +1,4 @@
-FROM alpine:3.18
+FROM alpine:3.22
 RUN apk add build-base git
 RUN git clone https://github.com/wolfcw/libfaketime /usr/local/src/libfaketime
 WORKDIR /usr/local/src/libfaketime
@@ -8,29 +8,26 @@ RUN git checkout ba9ed5b2898f234cfcefbe5c694b7d89dcec4334 && make && make instal
 # - /usr/local/lib/faketime/libfaketimeMT.so.1
 # - /usr/local/lib/faketime/libfaketime.so.1
 
-# Build the image just to store the file
-
-FROM scratch
-COPY --from=0 /usr/local/lib/faketime/libfaketimeMT.so.1 /faketime.so
-
-# Verify in Alpline
+# Verify in Alpine
 
 FROM alpine
-COPY --from=1 /faketime.so /lib/faketime.so
+COPY --from=0 /usr/local/lib/faketime/libfaketimeMT.so.1 /lib/faketime.so
 ENV LD_PRELOAD=/lib/faketime.so
 ENV FAKETIME="-15d" 
 ENV DONT_FAKE_MONOTONIC=1
-RUN date
+RUN date && touch /tmp/dummy
 
 # Verify with Java
 
 FROM groovy:alpine
-COPY --from=1 /faketime.so /lib/faketime.so
+COPY --from=0 /usr/local/lib/faketime/libfaketimeMT.so.1 /lib/faketime.so
 ENV LD_PRELOAD=/lib/faketime.so
 ENV FAKETIME="-15d" 
 ENV DONT_FAKE_MONOTONIC=1
-RUN groovy -e "new Date();"
+RUN groovy -e "System.out.println((new Date()).toInstant());" && touch /tmp/dummy
 
 # Build the final image
 FROM scratch
+COPY --from=1 /tmp/dummy /dev/null
+COPY --from=2 /tmp/dummy /dev/null
 COPY --from=0 /usr/local/lib/faketime/libfaketimeMT.so.1 /faketime.so
